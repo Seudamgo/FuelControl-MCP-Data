@@ -4,6 +4,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 
 import { FuelControlClient, type FetchLike } from './client.js';
+import { clientIpFrom } from './clientIp.js';
 import { readCredential } from './credential.js';
 import { FuelControlError } from './errors.js';
 import { RateLimiterRegistry } from './rateLimit.js';
@@ -101,7 +102,7 @@ async function handle(
     return;
   }
 
-  const remote = req.socket.remoteAddress ?? 'unknown';
+  const remote = clientIpFrom(req.socket.remoteAddress, req.headers);
 
   let credential;
   try {

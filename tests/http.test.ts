@@ -201,3 +201,35 @@ describe('Chốt danh sách tool nằm TRÊN đường chạy', () => {
     await new Promise<void>((r) => rogue.close(() => r()));
   });
 });
+
+describe('nhat ky kiem toan ghi dia chi THAT cua nguoi goi', () => {
+  // Loi that 24-08-2026: may chu doc req.socket.remoteAddress, ma sau nginx thi
+  // do LUON la IP cua nginx. Moi dong log tro ve cung mot cho -> nhat ky khong
+  // tra loi duoc dung cau hoi no sinh ra de tra loi.
+  it('lay tu X-Real-IP khi request den tu proxy noi bo', async () => {
+    const lines: string[] = [];
+    const srv = createHttpServer(cfg, {
+      fetchImpl: async () => new Response('{}', { status: 200 }),
+      log: (l) => lines.push(l),
+    });
+    await new Promise<void>((r) => srv.listen(0, '127.0.0.1', r));
+    const port = (srv.address() as AddressInfo).port;
+
+    // Khong gui chia khoa -> 401, va dong log auth_missing phai mang IP that.
+    const res = await fetch(`http://127.0.0.1:${port}/mcp`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        accept: 'application/json, text/event-stream',
+        'x-real-ip': '203.0.113.7',
+      },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
+    });
+    await new Promise<void>((r) => srv.close(() => r()));
+
+    expect(res.status).toBe(401);
+    const entry = lines.map((l) => JSON.parse(l)).find((e) => e.event === 'auth_missing');
+    expect(entry.remote).toBe('203.0.113.7');
+    expect(entry.remote).not.toBe('127.0.0.1');
+  });
+});
