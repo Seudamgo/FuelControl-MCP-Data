@@ -58,6 +58,10 @@ export const fuelVsBookingSchema = z.object({
       }),
       trips: z.object({
         count: z.number(),
+        // Chuyến thuê xe ngoài: chở khách thật nhưng KHÔNG đốt một giọt dầu nào
+        // của công ty. Không có con số này thì những ngày phần lớn khách đi bằng
+        // xe thuê sẽ làm litersPerPax tụt xuống mà không ai biết vì sao.
+        agencyTrips: z.number(),
         bookedPax: z.number(),
         actualPax: z.number(),
         paxGap: z.number(),

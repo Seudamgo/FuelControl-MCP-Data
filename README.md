@@ -11,21 +11,24 @@ Kế hoạch đầy đủ ở [PLAN.md](PLAN.md). Repo này là **Giai đoạn B
 
 ---
 
-## ⛔ Chưa dùng được ngay — đọc trước
+## ⚠️ Còn hai việc bấm tay trước khi hỏi được số liệu thật
 
-MCP này gọi xuống hai endpoint của **Giai đoạn A**, và tới hôm nay chúng **chưa tồn tại**
-(`internal/reports/` chưa có trong `fuelcontrol-backend`):
+Hai endpoint MCP gọi xuống **đã được viết xong 24-08-2026** (Giai đoạn A, gói
+`internal/reports/` trong `fuelcontrol-backend`):
 
 ```
 GET /api/reports/handover-daily?date=YYYY-MM-DD
 GET /api/reports/fuel-vs-booking?from=&to=
 ```
 
-Chưa build xong A thì mọi tool ở đây trả về lỗi `not_built` — và lỗi đó **nói thẳng ra
-nguyên nhân**, không để ai đi dò cấu hình. Kiểm bằng `npm run check`.
+Nhưng chúng mới nằm trên **nhánh chưa deploy**, và **chưa ai cấp API key**. Nên còn:
 
-Cài trước cũng không thừa: `npm run smoke` chạy được toàn tuyến với một API giả, nên phần
-MCP đã xong và đã kiểm; chỉ còn chờ A.
+1. Deploy `fuelcontrol-backend` (migration `0067` thêm quyền `reports.read`)
+2. Cấp API key — xem mục dưới
+
+Chạy `npm run check` để biết đang vướng cái nào: nó trả lời tách bạch key có sống không, chủ key
+có `reports.read` không, và hai endpoint đã lên máy chủ chưa. Endpoint chưa có thì lỗi
+`not_built` **nói thẳng nguyên nhân**, không để ai đi dò cấu hình.
 
 ---
 
@@ -167,6 +170,21 @@ npm run check     # kiểm key + endpoint thật (cần .env)
 `npm run smoke` là phép kiểm đáng chạy nhất trước khi commit: nó dựng một API giả ở localhost,
 spawn máy chủ MCP đã build, và nói chuyện với nó bằng đúng giao thức JSON-RPC — thứ mà test đơn
 vị không chạm tới.
+
+### Hợp đồng với backend
+
+`tests/fixtures/*.json` là phản hồi **thật** của backend, chụp trên Postgres thật với đủ 67
+migration bằng:
+
+```bash
+cd ../fuelcontrol-backend
+REPORTS_TEST_DSN=... REPORTS_CONTRACT_OUT=<đường-dẫn>/tests/fixtures   go test ./internal/reports/ -run TestDumpContractJSON
+```
+
+`tests/contract.test.ts` cho zod ăn chính hai tệp đó. Schema ở repo này và câu SQL ở repo kia nằm
+trong hai ngôn ngữ khác nhau và không có gì buộc chúng đi cùng nhau — ngày backend đổi tên một
+trường, đây là thứ duy nhất phát hiện ra. **Bản mẫu lệch thì chụp lại, đừng nới lỏng schema cho
+vừa.**
 
 ### Sửa gì thì nhớ
 

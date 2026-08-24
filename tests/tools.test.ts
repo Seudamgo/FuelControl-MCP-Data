@@ -26,7 +26,7 @@ const okFuel = {
     {
       date: '2026-08-23',
       fuel: { logs: 0, liters: 0, cost: 0, reconOk: 0, reconWarning: 0, reconSkipped: 0, depotFills: 0 },
-      trips: { count: 0, bookedPax: 0, actualPax: 0, paxGap: 0 },
+      trips: { count: 0, agencyTrips: 0, bookedPax: 0, actualPax: 0, paxGap: 0 },
       litersPerPax: null,
     },
   ],

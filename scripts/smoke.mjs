@@ -49,7 +49,7 @@ const api = http.createServer((req, res) => {
         {
           date: url.searchParams.get('from'),
           fuel: { logs: 6, liters: 412.5, cost: 15230, reconOk: 4, reconWarning: 1, reconSkipped: 1, depotFills: 2 },
-          trips: { count: 14, bookedPax: 96, actualPax: 88, paxGap: -8 },
+          trips: { count: 14, agencyTrips: 0, bookedPax: 96, actualPax: 88, paxGap: -8 },
           litersPerPax: 4.69,
         },
       ],

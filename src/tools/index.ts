@@ -73,6 +73,9 @@ export function registerTools(server: McpServer, client: FuelControlClient, now:
         'không có khách nào đi, nên tỉ lệ không tồn tại — không phải bằng 0.\n' +
         '• paxGap = actualPax − bookedPax. Đặt 9 chỗ mà đi 3 người thì hoặc booking sai, hoặc có ' +
         'người bị bỏ lại, hoặc có doanh thu không vào sổ. Đây là cặp số đáng soi nhất.\n' +
+        '• agencyTrips — số chuyến thuê xe ngoài trong ngày. Những chuyến này chở khách thật ' +
+        'nhưng KHÔNG dùng dầu của công ty, nên agencyTrips cao thì litersPerPax tụt xuống vì một lý ' +
+        'do hoàn toàn bình thường — kiểm con số này trước khi kết luận gì từ litersPerPax.\n' +
         '• depotFills — số phiếu khai là "đổ tại kho". Cờ này do chính người nhập tự khai và là ' +
         'đường duy nhất tắt được một quy tắc đối soát, nên nó tăng bất thường là một tín hiệu.\n\n' +
         'Ngày đổ dầu lấy theo lúc dầu vào bình, không phải lúc kế toán ngồi nhập. Bỏ trống ' +

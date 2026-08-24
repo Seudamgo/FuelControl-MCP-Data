@@ -16,7 +16,7 @@ const cleanDay: HandoverDaily = {
 const baseFuelDay = {
   date: '2026-08-23',
   fuel: { logs: 6, liters: 412.5, cost: 15230, reconOk: 6, reconWarning: 0, reconSkipped: 0, depotFills: 2 },
-  trips: { count: 14, bookedPax: 96, actualPax: 88, paxGap: -8 },
+  trips: { count: 14, agencyTrips: 0, bookedPax: 96, actualPax: 88, paxGap: -8 },
   litersPerPax: 4.69,
 };
 
@@ -81,7 +81,7 @@ describe('ban tin tom tat', () => {
         {
           date: '2026-08-23',
           fuel: { logs: 0, liters: 0, cost: 0, reconOk: 0, reconWarning: 0, reconSkipped: 0, depotFills: 0 },
-          trips: { count: 0, bookedPax: 0, actualPax: 0, paxGap: 0 },
+          trips: { count: 0, agencyTrips: 0, bookedPax: 0, actualPax: 0, paxGap: 0 },
           litersPerPax: null,
         },
       ],
@@ -95,7 +95,7 @@ describe('ban tin tom tat', () => {
     // Trả 0 đọc ra như "rất tiết kiệm", trong khi sự thật là tỉ lệ không tồn tại.
     const noPax: FuelVsBooking = {
       days: [
-        { ...baseFuelDay, trips: { count: 2, bookedPax: 4, actualPax: 0, paxGap: -4 }, litersPerPax: null },
+        { ...baseFuelDay, trips: { count: 2, agencyTrips: 0, bookedPax: 4, actualPax: 0, paxGap: -4 }, litersPerPax: null },
       ],
     };
     const out = formatDailySummary(cleanDay, noPax);

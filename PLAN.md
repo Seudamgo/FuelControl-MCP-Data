@@ -138,8 +138,8 @@ Phần này quan trọng: nó quyết định phải viết mới bao nhiêu.
 
 | Thiếu | Vì sao không tái dùng được cái đang có |
 |---|---|
-| Endpoint đếm check-in/out đầy đủ theo ngày | `driverpoints.TallyForDate` đếm **TRỄ**, mà "trễ" gộp chung *không nhận xe* với *nhận xe muộn*. Bee hỏi **có/không**, không hỏi *sớm/muộn* — hai câu hỏi khác nhau |
-| Endpoint xăng dầu ↔ booking theo ngày | Không có endpoint nào nối `fuel_logs` với `trips.booked_pax`. `/api/dashboard/cost-series` chỉ trả tiền, không trả lít và không trả khách |
+| ~~Endpoint đếm check-in/out đầy đủ theo ngày~~ ✅ **XONG 24-08** | `driverpoints.TallyForDate` đếm **TRỄ**, mà "trễ" gộp chung *không nhận xe* với *nhận xe muộn*. Bee hỏi **có/không**, không hỏi *sớm/muộn* — hai câu hỏi khác nhau |
+| ~~Endpoint xăng dầu ↔ booking theo ngày~~ ✅ **XONG 24-08** | Không có endpoint nào nối `fuel_logs` với `trips.booked_pax`. `/api/dashboard/cost-series` chỉ trả tiền, không trả lít và không trả khách |
 | Push vào group LINE | Xem §0.2 |
 | ~~Máy chủ MCP~~ | ✅ **XONG 24-08-2026** — xem Giai đoạn B bên dưới |
 
@@ -204,7 +204,7 @@ nghĩa là gì". Đúng cái đó là gốc của ba lỗi tiền nặng nhất 
 
 ### A1 — `GET /api/reports/handover-daily?date=YYYY-MM-DD` `[M]`
 
-- [ ] Package mới `internal/reports/`, gác sau quyền **mới** `reports.read`
+- [x] Package mới `internal/reports/`, gác sau quyền **mới** `reports.read`
 
 **Trả về:**
 
@@ -238,12 +238,15 @@ nghĩa là gì". Đúng cái đó là gốc của ba lỗi tiền nặng nhất 
 4. **Tách `driver` và `captain` bằng `staff.role`**, không đoán từ `trips.mode`. Một thuyền
    trưởng vẫn có thể được điều một chuyến đường bộ.
 
-- [ ] Test: chuyến đủ 2 dòng handover → `complete`; thiếu `checkin` → đúng ô đó; chuyến `cancelled`
+- [x] Test: chuyến đủ 2 dòng handover → `complete`; thiếu `checkin` → đúng ô đó; chuyến `cancelled`
       không lọt vào phép đếm; chuyến lúc 23:30 UTC rơi vào **ngày hôm sau** giờ Bangkok
+- [x] **Thêm ngoài kế hoạch:** `LEFT JOIN staff` thay vì `JOIN` — người có tài khoản mà chưa có hồ
+      sơ nhân sự vẫn hiện ra với `role: "unknown"`. `JOIN` thường nuốt mất họ, mà một chuyến biến
+      mất khỏi báo cáo tìm-chuyến-thiếu là hỏng đúng công dụng của báo cáo
 
 ### A2 — `GET /api/reports/fuel-vs-booking?from=&to=` `[M]`
 
-- [ ] Cùng package `internal/reports/`
+- [x] Cùng package `internal/reports/`
 
 **Trả về mỗi ngày một dòng:**
 
@@ -270,15 +273,41 @@ nghĩa là gì". Đúng cái đó là gốc của ba lỗi tiền nặng nhất 
 4. **`litersPerPax` để `null` khi `actualPax = 0`**, đừng trả `0`. Không có khách thì tỉ lệ đó
    không tồn tại; trả `0` đọc ra như "rất tiết kiệm".
 
-- [ ] Test: ngày không có chuyến nào vẫn phải có dòng (giá trị 0), không được biến mất khỏi mảng —
-      một ngày trống là một câu trả lời, không phải một lỗ hổng
+- [x] Test: ngày không có chuyến nào vẫn phải có dòng (giá trị 0), không được biến mất khỏi mảng —
+      một ngày trống là một câu trả lời, không phải một lỗ hổng (`generate_series`)
+- [x] **Thêm ngoài kế hoạch:** trường `agencyTrips`. Chuyến thuê xe ngoài chở khách THẬT nhưng
+      không đốt một giọt dầu nào của công ty; không có con số này thì ngày nào phần lớn khách đi
+      bằng xe thuê sẽ làm `litersPerPax` tụt xuống mà không ai biết vì sao
 
 ### A3 — Migration `0067_reports_read.sql` `[S]`
 
-- [ ] Thêm quyền `reports.read`, gán cho `accountant` · `ceo` (admin đi lọt sẵn nhờ bypass)
+- [x] Thêm quyền `reports.read`, gán cho `accountant` · `ceo` (admin đi lọt sẵn nhờ bypass)
 
 > Gán cho vai trò thật, **không** để trống như `api_keys.manage`. Đây là báo cáo vận hành hằng
 > ngày, không phải cửa quản trị hệ thống.
+
+### A5 — Đã làm thêm ngoài kế hoạch `[S]`
+
+- [x] Gói mới `internal/bangkok/` — một chỗ duy nhất định nghĩa "hôm nay/hôm qua giờ Bangkok".
+      Mặc định của cả hai endpoint (`date` trống = hôm qua, `from/to` trống = 7 ngày) nằm ở
+      **server**, không để mỗi client tự tính: ba client (curl · MCP · cron LINE) tự tính thì sẽ
+      có ngày ba bên ra ba kết quả mà không ai nhận ra.
+      > ⚠️ Gói này ghi rõ một món nợ đã biết: hàm nạp múi giờ hiện có **sáu bản** gần giống nhau
+      > trong repo. Đây là chỗ đúng để gom lại; năm chỗ kia nên chuyển sang khi có dịp đụng vào.
+- [x] Ngày gõ sai trả **400 `BAD_DATE`**, khoảng quá dài trả **400 `BAD_RANGE`** — không phải 500.
+      Trả 500 cho một ngày gõ sai làm người vận hành đi lục log máy chủ để tìm một lỗi nằm trong
+      chính câu lệnh curl của họ.
+- [x] Trần **92 ngày** một lần hỏi: một câu buột miệng "cho xem cả năm ngoái" không được biến
+      thành truy vấn quét toàn bảng trên database đang phục vụ người thật.
+- [x] **Kiểm hợp đồng giữa hai repo**: `TestDumpContractJSON` chụp phản hồi THẬT (Postgres thật,
+      đủ 67 migration) thành `tests/fixtures/*.json` trong repo MCP, và `tests/contract.test.ts`
+      bên đó cho zod ăn chính hai tệp ấy. Backend đổi tên một trường thì bài test đó đỏ — không có
+      nó thì lỗi chỉ lộ ra lúc Bee đang hỏi Claude một câu về đội xe.
+
+**Kiểm chứng:** 24 test cho `internal/reports` (8 chạm Postgres thật) + 3 test `internal/bangkok`.
+Đã kiểm bằng đột biến — bỏ đổi múi giờ · `LEFT JOIN`→`JOIN` · bỏ lọc `cancelled` ·
+`filled_at`→`created_at` · bỏ `generate_series` · đảo chiều phép trừ `paxGap`: mỗi cái đều làm
+đỏ đúng bài test canh nó.
 
 ### A4 — Cấp API key cho MCP `[S]`
 
@@ -352,8 +381,9 @@ giả ở localhost (không cần key thật). Đã kiểm bằng đột biến 
 đỏ đúng chỗ. Một bài từng xanh vì lý do sai (chốt giao thức chặn trước nên chốt mạng nội bộ chưa
 bao giờ được chạm tới) đã được vá.
 
-> ⛔ **Vẫn chưa hỏi được số liệu thật.** Hai endpoint của Giai đoạn A chưa tồn tại —
-> `internal/reports/` chưa có trong `fuelcontrol-backend`. Kiểm bằng `npm run check`.
+> ✅ **Hai endpoint đã có từ 24-08-2026** (Giai đoạn A). Còn thiếu đúng hai việc bấm tay trước khi
+> hỏi được số liệu thật: **deploy backend** lên máy chủ, và **A4 — cấp API key**. Kiểm bằng
+> `npm run check`.
 
 ---
 
@@ -437,7 +467,7 @@ bao giờ được chạm tới) đã được vá.
 
 | Giai đoạn | Nội dung | Thời gian | Chặn ai |
 |---|---|---:|---|
-| **A** | 2 endpoint + migration + cấp key | 1–2 ngày | chặn cả B lẫn C |
+| **A** | ✅ 2 endpoint + migration **XONG 24-08**; còn A4 cấp key (việc bấm tay) | | |
 | ~~**B**~~ | ✅ **XONG 24-08-2026** — máy chủ MCP, 3 tool | | |
 | **C** | Bật LINE + push group + cron | 1 ngày | cần A |
 | | **Tổng** | **3–5 ngày** | |
