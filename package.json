@@ -5,7 +5,8 @@
   "description": "Máy chủ MCP chỉ-đọc cho FuelControl — hỏi số liệu giao nhận xe và xăng dầu bằng ngôn ngữ tự nhiên.",
   "type": "module",
   "bin": {
-    "fuelcontrol-mcp": "dist/index.js"
+    "fuelcontrol-mcp": "dist/index.js",
+    "fuelcontrol-mcp-http": "dist/serve.js"
   },
   "files": [
     "dist"
@@ -17,7 +18,8 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "serve": "node dist/serve.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
