@@ -395,28 +395,44 @@ bao giờ được chạm tới) đã được vá.
 
 **Việc này đáng làm ngay dù chưa có MCP** — xem §0.2.
 
-- [ ] Tạo channel **Messaging API** ở LINE Developers Console (không phải "LINE Login")
-- [ ] Lấy **Channel access token** → điền `ALERT_WEBHOOK_TOKEN` vào `.env` trên prod
-- [ ] Mời bot vào group chat, lấy `groupId`
+- [x] Tạo channel **Messaging API** ở LINE Developers Console (không phải "LINE Login")
+      — bot **"Bee SeudamFLeet"** (`@916waisn`), đã kiểm token bằng `GET /v2/bot/info` ngày 24-08
+- [ ] Điền **Channel access token** vào `ALERT_WEBHOOK_TOKEN` trong `.env` trên prod
+- [ ] Điền **Channel secret** vào `LINE_CHANNEL_SECRET` (cần cho webhook, xem C4)
+- [ ] Mời bot vào group chat, lấy `groupId` qua `GET /api/line/groups` (xem C4)
 - [ ] Kiểm: làm một cron hỏng có chủ ý → phải thấy tin trong LINE
 
+> ⚠️ **Quota 300 tin/tháng** (gói free, đã kiểm 24-08 — dùng 0/300). LINE đếm tin **theo từng
+> người nhận**, nên một lần push vào group 5 người có thể tính là 5 tin. Nếu đúng vậy thì bản tin
+> mỗi ngày đã ăn 150/300. Đo bằng `GET /v2/bot/message/quota/consumption` **trước và sau** lần
+> push thật đầu tiên — đó là cách duy nhất biết chắc, và nó quyết định có đổi sang gửi
+> "chỉ khi có bất thường" (Q4) hay không.
+
 > **`groupId` không tra được từ Console.** Nó chỉ đến trong một webhook event khi bot được mời
-> vào group. Cách lấy sẽ viết chi tiết vào runbook lúc làm.
+> vào group — đó là lý do có mục **C4** bên dưới.
 
 ### C2 — Thêm `PushToGroup` vào `internal/notify` `[S]`
 
-- [ ] Hàm mới dùng `POST /v2/bot/message/push` + `{"to": groupId, "messages": [...]}`
-- [ ] Env mới `LINE_REPORT_GROUP_ID`; để trống → im lặng bỏ qua, **giống hệt** cách `Send` đang
-      làm với token rỗng
-- [ ] **Giữ nguyên** `Send()` broadcast cho cảnh báo cron — cảnh báo hỏng hóc và báo cáo hằng
+- [x] Hàm mới `PushToGroup` dùng `POST /v2/bot/message/push` + `{"to": groupId, "messages": [...]}`
+- [x] Env mới `LINE_REPORT_GROUP_ID`; để trống → im lặng bỏ qua, **giống hệt** cách `Send` đang
+      làm với token rỗng — nhưng cron **kêu to lúc khởi động** nếu đã bật báo cáo mà thiếu biến
+      này. Một bản tin không bao giờ gửi trông y hệt một ngày không có gì để báo
+- [x] **Giữ nguyên** `Send()` broadcast cho cảnh báo cron — cảnh báo hỏng hóc và báo cáo hằng
       ngày là hai loại tin khác nhau, gộp một kênh thì tin quan trọng chìm giữa tin thường
+- [x] Lý do lỗi của LINE đi ra ngoài nguyên văn (`"Invalid to"`, hết quota, token sai) — đó là
+      thứ duy nhất phân biệt bốn nguyên nhân khác nhau
 
 ### C3 — Cron báo cáo hằng ngày `[M]`
 
-- [ ] 7:00 giờ Bangkok, gọi **cùng hàm service** mà endpoint A1/A2 gọi (luật **N1**)
-- [ ] `recover()` trong goroutine — plan.md mục 0.10, panic trong goroutine giết cả tiến trình API
-- [ ] Env `DAILY_REPORT_ENABLED` để tắt được ở dev
-- [ ] Báo cáo **ngày hôm qua**, không phải hôm nay: 7 giờ sáng thì hôm nay chưa có gì để báo
+- [x] 7:00 giờ Bangkok, gọi **cùng hàm service** mà endpoint A1/A2 gọi (luật **N1**)
+- [x] `recover()` trong goroutine — plan.md mục 0.10, panic trong goroutine giết cả tiến trình API
+- [x] Env `DAILY_REPORT_ENABLED` để tắt được ở dev
+- [x] Báo cáo **ngày hôm qua**, không phải hôm nay: 7 giờ sáng thì hôm nay chưa có gì để báo
+- [x] Một trong hai nguồn số liệu hỏng → **KHÔNG gửi nửa bản tin**. Nửa bản tin đọc y hệt một
+      ngày bình yên, mà đó lại đúng là ngày hệ thống đang có chuyện (luật **N3**)
+- [x] Danh sách chuyến thiếu cắt ở 12 dòng kèm câu "… và N chuyến nữa". LINE cắt tin ở 5000 ký
+      tự; không có trần thì một ngày hỏng nặng đẩy phần tổng kết ra khỏi tin — càng nhiều chuyện
+      xảy ra thì bản tin càng nói được ít
 
 **Bản tin mẫu:**
 
@@ -439,10 +455,33 @@ bao giờ được chạm tới) đã được vá.
   Booking 96  ·  Thực đi 88  ·  lệch −8
 ```
 
-- [ ] Test: ngày không có dữ liệu → vẫn gửi tin, ghi rõ *"không có chuyến nào"*
+- [x] Test: ngày không có dữ liệu → vẫn gửi tin, ghi rõ *"không có chuyến nào"*
 
 > Ngày im lặng và ngày hệ thống hỏng **phải phân biệt được**. Không gửi gì cả thì hai ca đó
 > trông giống hệt nhau, và người đọc sẽ học cách bỏ qua sự im lặng.
+
+### C4 — Bắt `groupId` bằng webhook `[M]` *(thêm ngoài kế hoạch — bắt buộc phải có)*
+
+Kế hoạch gốc ghi "mời bot vào group, lấy `groupId`" như một bước bấm tay. Nhưng LINE **không có
+API nào liệt kê group bot đang ở trong**, và Console cũng không hiện. Chuỗi đó xuất hiện đúng một
+lần, trong webhook event lúc bot được mời vào. Không có endpoint nhận webhook thì không có đường
+nào lấy được nó.
+
+- [x] Gói mới `internal/linehook/` + `POST /api/public/line/webhook` (công khai — LINE không
+      mang theo JWT) và `GET /api/line/groups` (gác sau `access.manage`)
+- [x] **Kiểm chữ ký HMAC-SHA256** bằng `LINE_CHANNEL_SECRET`, so bằng `hmac.Equal`. Chữ ký là thứ
+      DUY NHẤT phân biệt LINE với bất kỳ ai trên Internet biết địa chỉ endpoint công khai này
+- [x] Thiếu channel secret → webhook **đóng hẳn (503)**, không mở toang. Không kiểm được chữ ký
+      thì một endpoint công khai nhận bất cứ thứ gì Internet gửi tới
+- [x] Chỉ nhớ trong bộ nhớ, trần 20 group, bỏ dòng cũ nhất khi đầy — endpoint công khai mà bộ nhớ
+      lớn dần vô hạn là đường làm sập tiến trình không cần quyền gì cả. Dữ liệu này dùng một lần
+      lúc cài đặt rồi chép sang `.env`, không đáng một bảng phải bảo trì mãi mãi
+- [x] Thân request hỏng vẫn trả 200: chữ ký đã đúng nên đây thật sự là LINE, trả lỗi thì nó gửi
+      lại mãi và không lần nào khá hơn
+
+**Kiểm chứng Giai đoạn C:** 4 test mới cho `notify` (11 tổng) · 19 test `dailyreport` ·
+8 test `linehook`. Một lỗi thật do test bắt được: hàm làm tròn nghìn dùng `int64(v+0.5)` cắt về
+phía 0 nên `-1500` ra `-1.499`.
 
 ---
 
@@ -469,7 +508,7 @@ bao giờ được chạm tới) đã được vá.
 |---|---|---:|---|
 | **A** | ✅ 2 endpoint + migration **XONG 24-08**; còn A4 cấp key (việc bấm tay) | | |
 | ~~**B**~~ | ✅ **XONG 24-08-2026** — máy chủ MCP, 3 tool | | |
-| **C** | Bật LINE + push group + cron | 1 ngày | cần A |
+| **C** | ✅ Code **XONG 24-08** (push group · cron · webhook bắt groupId); còn C1 bấm tay | | |
 | | **Tổng** | **3–5 ngày** | |
 
 **Đường găng:** Giai đoạn A chặn cả hai giai đoạn sau, nên làm A trước, xong rồi **B và C chạy
