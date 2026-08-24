@@ -1,10 +1,46 @@
-# Nối Claude Code vào FuelControl
+# Nối Claude vào FuelControl
 
 Tài liệu MỘT TRANG cho người dùng cuối. Không cần biết gì về Docker hay MCP.
 
+**Hai đường, chọn một:**
+
+| | Dùng khi | Cần cầm chìa khoá không |
+|---|---|---|
+| [A. Claude app / web](#a--claude-app--web-oauth) | Người dùng thường, kể cả CEO | **Không** — đăng nhập Fleet như mọi khi |
+| [B. Claude Code](#b--claude-code-chìa-khoá-api) | Lập trình viên, script | Có |
+
 ---
 
-## Bạn cần hai thứ
+## A — Claude app / web (OAuth)
+
+Đường này **không ai phải cầm một chuỗi bí mật nào**. Bấm Connect, đăng nhập
+Fleet, bấm Đồng ý, xong.
+
+1. Trong Claude: **Settings → Connectors → Add custom connector**
+2. Đường dẫn: `https://fleet.seudambite.com/mcp`
+3. Mở **Advanced settings**, điền:
+   - **OAuth Client ID**: `fleet-claude`
+   - **Client Secret**: **để TRỐNG**
+4. **Add** → **Connect** → trình duyệt mở màn đăng nhập Fleet → **Đồng ý**
+
+> **Vì sao phải điền Client ID bằng tay:** máy chủ cố ý không làm Dynamic Client
+> Registration — đó là một cửa công khai ai gọi cũng được, và bỏ nó là bớt một
+> bề mặt tấn công. `fleet-claude` **không phải bí mật**, nó chỉ là tên.
+
+Quyền nhận được:
+
+- **chỉ đọc** — không sửa, không xoá, không tạo được gì
+- **đúng phần bạn được xem**, không hơn: thẻ mang chính quyền RBAC của bạn
+- **tự hết hạn sau 90 ngày**
+- thu hồi bất cứ lúc nào ở tab **API key** (dòng tên "Claude")
+
+Bấm Connect lại lần nữa thì thẻ cũ **chết ngay** — một ứng dụng, một thẻ.
+
+---
+
+## B — Claude Code (chìa khoá API)
+
+### Bạn cần hai thứ
 
 1. **Claude Code** đã cài trên máy.
 2. **Một chìa khoá API** — xin ở app: đăng nhập `https://fleet.seudambite.com`
@@ -16,7 +52,7 @@ Tài liệu MỘT TRANG cho người dùng cuối. Không cần biết gì về 
 
 ---
 
-## Nối, một dòng
+### Nối, một dòng
 
 ```bash
 claude mcp add --transport http fleet https://fleet.seudambite.com/mcp \
